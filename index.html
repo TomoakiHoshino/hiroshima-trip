@@ -186,7 +186,7 @@ function startListening() {
     snapshot.forEach(child => {
       entries.push({ id: child.key, ...child.val() });
     });
-    entries.sort((a, b) => (a.order ?? a.timestamp) - (b.order ?? b.timestamp));
+    entries.sort((a, b) => (b.order ?? b.timestamp) - (a.order ?? a.timestamp));
     render();
   });
 }
@@ -251,7 +251,7 @@ window.deleteEntry = async function(id) {
 async function saveOrder() {
   const updates = {};
   entries.forEach((e, i) => {
-    updates['entries/' + e.id + '/order'] = (i + 1) * 1000;
+    updates['entries/' + e.id + '/order'] = (entries.length - i) * 1000;
   });
   await update(ref(db), updates);
 }
