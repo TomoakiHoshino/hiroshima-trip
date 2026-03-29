@@ -222,6 +222,9 @@ window.saveEntry = async function() {
   const place = document.getElementById('in-place').value.trim();
   const memo = document.getElementById('in-memo').value.trim();
   if (!place && !memo) { alert('場所かメモを入力してください'); return; }
+  const saveBtn = document.querySelector('.btn-save');
+  saveBtn.textContent = '保存中...';
+  saveBtn.disabled = true;
   const now = new Date();
   const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
   const maxOrder = entries.length > 0 ? Math.max(...entries.map(e => e.order ?? e.timestamp)) : 0;
@@ -235,6 +238,8 @@ window.saveEntry = async function() {
     timestamp: Date.now(),
     order: maxOrder + 1000
   });
+  saveBtn.textContent = '保存する';
+  saveBtn.disabled = false;
   closeModal();
 };
 
