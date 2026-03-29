@@ -14,8 +14,7 @@
   .card { background: #fff; border-radius: 14px; border: 1px solid #e8e8e8; padding: 1.25rem; margin-bottom: 1rem; }
   .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
   .name-row { display: flex; gap: 8px; margin-bottom: 8px; }
-  .name-btn { flex: 1; padding: 10px 8px; border: 1px solid #ddd; border-radius: 10px; background: #fff; font-size: 14px; cursor: pointer; text-align: center; }
-  .name-btn.active { background: #EEEDFE; border-color: #7F77DD; color: #3C3489; font-weight: 600; }
+  .name-btn { flex: 1; padding: 10px 8px; border: 1px solid #ddd; border-radius: 10px; background: #fff; font-size: 14px; cursor: pointer; }
   .custom-row { display: flex; gap: 8px; margin-top: 8px; }
   .custom-row input { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; }
   .custom-row button { padding: 0 16px; border-radius: 10px; border: 1px solid #ddd; background: #fff; font-size: 14px; cursor: pointer; }
@@ -24,7 +23,7 @@
   .stat-num { font-size: 24px; font-weight: 600; }
   .stat-lbl { font-size: 11px; color: #888; margin-top: 2px; }
   .add-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: #fff; border: 1.5px dashed #ccc; border-radius: 14px; font-size: 14px; color: #888; cursor: pointer; margin-bottom: 1.5rem; }
-  .add-btn:hover { background: #f9f9f9; }
+  .sort-hint { font-size: 12px; color: #aaa; text-align: center; margin-bottom: 12px; }
   .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); z-index: 100; align-items: flex-end; justify-content: center; }
   .overlay.open { display: flex; }
   .sheet { background: #fff; border-radius: 20px 20px 0 0; padding: 1.5rem 1.25rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
@@ -43,8 +42,10 @@
   .timeline { position: relative; padding-left: 28px; }
   .timeline::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 1.5px; background: #e8e8e8; }
   .tl-item { position: relative; margin-bottom: 1.25rem; }
+  .tl-item.dragging { opacity: 0.35; }
+  .tl-item.drag-over .tl-card { border: 2px dashed #7F77DD; background: #EEEDFE; }
   .tl-dot { position: absolute; left: -22px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #7F77DD; border: 2.5px solid #f5f5f5; }
-  .tl-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 14px; padding: 1rem; }
+  .tl-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 14px; padding: 1rem; transition: border 0.15s; }
   .tl-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .tl-emoji { font-size: 20px; line-height: 1; }
   .tl-place { font-size: 15px; font-weight: 600; flex: 1; }
@@ -53,7 +54,10 @@
   .tl-time { font-size: 11px; color: #aaa; }
   .tl-memo { font-size: 13px; color: #666; line-height: 1.7; }
   .tl-img { width: 100%; border-radius: 10px; margin-top: 10px; max-height: 200px; object-fit: cover; }
-  .tl-delete { font-size: 11px; color: #bbb; text-align: right; margin-top: 8px; cursor: pointer; }
+  .tl-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid #f0f0f0; }
+  .drag-handle { font-size: 13px; color: #bbb; cursor: grab; padding: 4px 6px; border-radius: 6px; user-select: none; touch-action: none; }
+  .drag-handle:hover { background: #f5f5f5; color: #888; }
+  .tl-delete { font-size: 12px; color: #ccc; cursor: pointer; padding: 4px 6px; }
   .tl-delete:hover { color: #e74c3c; }
   .empty { text-align: center; padding: 3rem 1rem; color: #aaa; font-size: 14px; line-height: 1.9; }
   .loading { text-align: center; padding: 2rem; color: #aaa; font-size: 13px; }
@@ -86,6 +90,7 @@
       <div class="stat"><div class="stat-num" id="member-cnt">0</div><div class="stat-lbl">投稿者</div></div>
     </div>
     <button class="add-btn" onclick="openModal()">＋ 思い出を追加する</button>
+    <p class="sort-hint" id="sort-hint" style="display:none">⠿ をつかんで並び替えできます</p>
     <div class="loading" id="loading">読み込み中...</div>
     <div class="timeline" id="timeline" style="display:none"></div>
     <div class="empty" id="empty-msg" style="display:none">まだ思い出がありません。<br>最初の一枚を追加しよう！</div>
@@ -114,7 +119,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCU1KJYLN1DZwLcYvmm6SuALEt1XoPf1qQ",
@@ -135,6 +140,7 @@ let selectedEmoji = '';
 let photoData = '';
 let currentUser = localStorage.getItem('tripUser') || '';
 let entries = [];
+let dragSrcId = null;
 
 function initEmojis() {
   const row = document.getElementById('emoji-row');
@@ -180,7 +186,7 @@ function startListening() {
     snapshot.forEach(child => {
       entries.push({ id: child.key, ...child.val() });
     });
-    entries.sort((a, b) => b.timestamp - a.timestamp);
+    entries.sort((a, b) => (a.order ?? a.timestamp) - (b.order ?? b.timestamp));
     render();
   });
 }
@@ -218,6 +224,7 @@ window.saveEntry = async function() {
   if (!place && !memo) { alert('場所かメモを入力してください'); return; }
   const now = new Date();
   const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  const maxOrder = entries.length > 0 ? Math.max(...entries.map(e => e.order ?? e.timestamp)) : 0;
   await push(entriesRef, {
     place: place || '記録',
     emoji: selectedEmoji || '✨',
@@ -225,7 +232,8 @@ window.saveEntry = async function() {
     photo: photoData,
     time,
     author: currentUser,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    order: maxOrder + 1000
   });
   closeModal();
 };
@@ -235,23 +243,120 @@ window.deleteEntry = async function(id) {
   await remove(ref(db, 'entries/' + id));
 };
 
+async function saveOrder() {
+  const updates = {};
+  entries.forEach((e, i) => {
+    updates['entries/' + e.id + '/order'] = (i + 1) * 1000;
+  });
+  await update(ref(db), updates);
+}
+
+function setupDrag() {
+  const tl = document.getElementById('timeline');
+  const items = Array.from(tl.querySelectorAll('.tl-item'));
+
+  items.forEach(item => {
+    const handle = item.querySelector('.drag-handle');
+
+    // PCドラッグ
+    handle.addEventListener('mousedown', () => { item.setAttribute('draggable', true); });
+    item.addEventListener('dragstart', (e) => {
+      dragSrcId = item.dataset.id;
+      setTimeout(() => item.classList.add('dragging'), 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      item.setAttribute('draggable', false);
+      tl.querySelectorAll('.tl-item').forEach(i => i.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (item.dataset.id === dragSrcId) return;
+      tl.querySelectorAll('.tl-item').forEach(i => i.classList.remove('drag-over'));
+      item.classList.add('drag-over');
+    });
+    item.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      if (item.dataset.id === dragSrcId) return;
+      item.classList.remove('drag-over');
+      const si = entries.findIndex(x => x.id === dragSrcId);
+      const di = entries.findIndex(x => x.id === item.dataset.id);
+      if (si === -1 || di === -1) return;
+      const [moved] = entries.splice(si, 1);
+      entries.splice(di, 0, moved);
+      render();
+      await saveOrder();
+    });
+
+    // スマホタッチ
+    let touchTimer = null;
+    let activeDrag = false;
+    let startY = 0;
+
+    handle.addEventListener('touchstart', (e) => {
+      startY = e.touches[0].clientY;
+      touchTimer = setTimeout(() => {
+        activeDrag = true;
+        dragSrcId = item.dataset.id;
+        item.classList.add('dragging');
+        if (navigator.vibrate) navigator.vibrate(40);
+      }, 200);
+    }, { passive: true });
+
+    handle.addEventListener('touchmove', (e) => {
+      if (!activeDrag) { clearTimeout(touchTimer); return; }
+      e.preventDefault();
+      const touch = e.touches[0];
+      const els = document.elementsFromPoint(touch.clientX, touch.clientY);
+      const over = els.find(el => el.classList && el.classList.contains('tl-item') && el.dataset.id !== dragSrcId);
+      tl.querySelectorAll('.tl-item').forEach(i => i.classList.remove('drag-over'));
+      if (over) over.classList.add('drag-over');
+    }, { passive: false });
+
+    handle.addEventListener('touchend', async () => {
+      clearTimeout(touchTimer);
+      if (!activeDrag) return;
+      activeDrag = false;
+      item.classList.remove('dragging');
+      const over = tl.querySelector('.tl-item.drag-over');
+      tl.querySelectorAll('.tl-item').forEach(i => i.classList.remove('drag-over'));
+      if (over && over.dataset.id !== dragSrcId) {
+        const si = entries.findIndex(x => x.id === dragSrcId);
+        const di = entries.findIndex(x => x.id === over.dataset.id);
+        if (si !== -1 && di !== -1) {
+          const [moved] = entries.splice(si, 1);
+          entries.splice(di, 0, moved);
+          render();
+          await saveOrder();
+        }
+      }
+      dragSrcId = null;
+    });
+  });
+}
+
 function render() {
   document.getElementById('loading').style.display = 'none';
   const tl = document.getElementById('timeline');
   const empty = document.getElementById('empty-msg');
   document.getElementById('cnt').textContent = entries.length;
   document.getElementById('photo-cnt').textContent = entries.filter(e => e.photo).length;
-  const members = new Set(entries.map(e => e.author)).size;
-  document.getElementById('member-cnt').textContent = members;
+  document.getElementById('member-cnt').textContent = new Set(entries.map(e => e.author)).size;
+
   if (entries.length === 0) {
     tl.style.display = 'none';
     empty.style.display = 'block';
+    document.getElementById('sort-hint').style.display = 'none';
     return;
   }
+
   tl.style.display = 'block';
   empty.style.display = 'none';
+  document.getElementById('sort-hint').style.display = 'block';
+
   tl.innerHTML = entries.map(e => `
-    <div class="tl-item">
+    <div class="tl-item" data-id="${e.id}">
       <div class="tl-dot"></div>
       <div class="tl-card">
         <div class="tl-top">
@@ -264,10 +369,15 @@ function render() {
         </div>
         ${e.memo ? `<div class="tl-memo">${e.memo}</div>` : ''}
         ${e.photo ? `<img class="tl-img" src="${e.photo}" />` : ''}
-        ${e.author === currentUser ? `<div class="tl-delete" onclick="deleteEntry('${e.id}')">削除</div>` : ''}
+        <div class="tl-actions">
+          <span class="drag-handle">⠿ 並び替え</span>
+          ${e.author === currentUser ? `<span class="tl-delete" onclick="deleteEntry('${e.id}')">削除</span>` : '<span></span>'}
+        </div>
       </div>
     </div>
   `).join('');
+
+  setupDrag();
 }
 
 if (currentUser) {
