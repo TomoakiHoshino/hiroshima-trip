@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>広島旅行 思い出メモ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #f5f5f5; color: #222; }
+  .app { max-width: 480px; margin: 0 auto; padding: 1rem; }
+  .header { text-align: center; padding: 1.5rem 0 1rem; }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header p { font-size: 13px; color: #888; margin-top: 4px; }
+  .card { background: #fff; border-radius: 14px; border: 1px solid #e8e8e8; padding: 1.25rem; margin-bottom: 1rem; }
+  .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+  .name-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .name-btn { flex: 1; padding: 10px 8px; border: 1px solid #ddd; border-radius: 10px; background: #fff; font-size: 14px; cursor: pointer; text-align: center; }
+  .name-btn.active { background: #EEEDFE; border-color: #7F77DD; color: #3C3489; font-weight: 600; }
+  .custom-row { display: flex; gap: 8px; margin-top: 8px; }
+  .custom-row input { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; }
+  .custom-row button { padding: 0 16px; border-radius: 10px; border: 1px solid #ddd; background: #fff; font-size: 14px; cursor: pointer; }
+  .stat-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .stat { flex: 1; background: #fff; border-radius: 12px; padding: 12px; text-align: center; border: 1px solid #e8e8e8; }
+  .stat-num { font-size: 24px; font-weight: 600; }
+  .stat-lbl { font-size: 11px; color: #888; margin-top: 2px; }
+  .add-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: #fff; border: 1.5px dashed #ccc; border-radius: 14px; font-size: 14px; color: #888; cursor: pointer; margin-bottom: 1.5rem; }
+  .add-btn:hover { background: #f9f9f9; }
+  .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); z-index: 100; align-items: flex-end; justify-content: center; }
+  .overlay.open { display: flex; }
+  .sheet { background: #fff; border-radius: 20px 20px 0 0; padding: 1.5rem 1.25rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+  .sheet h2 { font-size: 17px; font-weight: 600; margin-bottom: 1rem; }
+  .field-label { font-size: 12px; color: #888; margin-bottom: 4px; margin-top: 14px; }
+  .sheet input[type=text], .sheet textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; background: #fafafa; }
+  .sheet textarea { min-height: 80px; resize: vertical; }
+  .emoji-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .emoji-btn { font-size: 22px; cursor: pointer; padding: 4px 6px; border-radius: 8px; border: 2px solid transparent; line-height: 1; background: none; }
+  .emoji-btn.selected { border-color: #7F77DD; background: #EEEDFE; }
+  .upload-label { display: block; text-align: center; padding: 12px; border: 1.5px dashed #ccc; border-radius: 10px; font-size: 13px; color: #888; cursor: pointer; margin-top: 6px; }
+  .img-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 10px; margin-top: 8px; display: none; }
+  .btn-row { display: flex; gap: 8px; margin-top: 1.25rem; }
+  .btn-cancel { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 12px; background: #fff; font-size: 14px; color: #666; cursor: pointer; }
+  .btn-save { flex: 2; padding: 12px; border: none; border-radius: 12px; background: #7F77DD; font-size: 14px; color: #fff; cursor: pointer; font-weight: 600; }
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 1.5px; background: #e8e8e8; }
+  .tl-item { position: relative; margin-bottom: 1.25rem; }
+  .tl-dot { position: absolute; left: -22px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #7F77DD; border: 2.5px solid #f5f5f5; }
+  .tl-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 14px; padding: 1rem; }
+  .tl-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .tl-emoji { font-size: 20px; line-height: 1; }
+  .tl-place { font-size: 15px; font-weight: 600; flex: 1; }
+  .tl-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .tl-author { font-size: 11px; color: #7F77DD; font-weight: 600; background: #EEEDFE; padding: 2px 8px; border-radius: 999px; }
+  .tl-time { font-size: 11px; color: #aaa; }
+  .tl-memo { font-size: 13px; color: #666; line-height: 1.7; }
+  .tl-img { width: 100%; border-radius: 10px; margin-top: 10px; max-height: 200px; object-fit: cover; }
+  .tl-delete { font-size: 11px; color: #bbb; text-align: right; margin-top: 8px; cursor: pointer; }
+  .tl-delete:hover { color: #e74c3c; }
+  .empty { text-align: center; padding: 3rem 1rem; color: #aaa; font-size: 14px; line-height: 1.9; }
+  .loading { text-align: center; padding: 2rem; color: #aaa; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>広島旅行 思い出メモ</h1>
+    <p id="header-sub">家族3人で記録しよう</p>
+  </div>
+
+  <div class="card" id="name-setup">
+    <h2>あなたは誰ですか？</h2>
+    <div class="name-row">
+      <button class="name-btn" onclick="setName('パパ')">パパ</button>
+      <button class="name-btn" onclick="setName('ママ')">ママ</button>
+      <button class="name-btn" onclick="setName('こども')">こども</button>
+    </div>
+    <div class="custom-row">
+      <input type="text" id="custom-name-input" placeholder="または名前を入力..." />
+      <button onclick="setCustomName()">決定</button>
+    </div>
+  </div>
+
+  <div id="main-area" style="display:none">
+    <div class="stat-row">
+      <div class="stat"><div class="stat-num" id="cnt">0</div><div class="stat-lbl">思い出</div></div>
+      <div class="stat"><div class="stat-num" id="photo-cnt">0</div><div class="stat-lbl">写真</div></div>
+      <div class="stat"><div class="stat-num" id="member-cnt">0</div><div class="stat-lbl">投稿者</div></div>
+    </div>
+    <button class="add-btn" onclick="openModal()">＋ 思い出を追加する</button>
+    <div class="loading" id="loading">読み込み中...</div>
+    <div class="timeline" id="timeline" style="display:none"></div>
+    <div class="empty" id="empty-msg" style="display:none">まだ思い出がありません。<br>最初の一枚を追加しよう！</div>
+  </div>
+</div>
+
+<div class="overlay" id="modal">
+  <div class="sheet">
+    <h2>思い出を記録する</h2>
+    <div class="field-label">場所・スポット名</div>
+    <input type="text" id="in-place" placeholder="例：宮島、平和記念公園..." />
+    <div class="field-label">気持ちを一言で</div>
+    <div class="emoji-row" id="emoji-row"></div>
+    <div class="field-label">メモ</div>
+    <textarea id="in-memo" placeholder="感じたこと、食べたもの、なんでも..."></textarea>
+    <div class="field-label">写真</div>
+    <label class="upload-label" for="in-photo">写真を選ぶ</label>
+    <input type="file" id="in-photo" accept="image/*" style="display:none" onchange="previewPhoto(this)" />
+    <img id="photo-preview" class="img-preview" />
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveEntry()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCU1KJYLN1DZwLcYvmm6SuALEt1XoPf1qQ",
+  authDomain: "hiroshima-trip.firebaseapp.com",
+  databaseURL: "https://hiroshima-trip-default-rtdb.firebaseio.com",
+  projectId: "hiroshima-trip",
+  storageBucket: "hiroshima-trip.firebasestorage.app",
+  messagingSenderId: "595141428108",
+  appId: "1:595141428108:web:1f20f0f643c457e7fc8ca9"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const entriesRef = ref(db, 'entries');
+
+const EMOJIS = ['😊','😍','😮','😂','🥰','✨','🙏','🎉','😌','🤩'];
+let selectedEmoji = '';
+let photoData = '';
+let currentUser = localStorage.getItem('tripUser') || '';
+let entries = [];
+
+function initEmojis() {
+  const row = document.getElementById('emoji-row');
+  row.innerHTML = '';
+  selectedEmoji = '';
+  EMOJIS.forEach(e => {
+    const btn = document.createElement('button');
+    btn.className = 'emoji-btn';
+    btn.textContent = e;
+    btn.onclick = () => {
+      document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedEmoji = e;
+    };
+    row.appendChild(btn);
+  });
+}
+
+window.setName = function(name) {
+  currentUser = name;
+  localStorage.setItem('tripUser', name);
+  showMain();
+};
+
+window.setCustomName = function() {
+  const val = document.getElementById('custom-name-input').value.trim();
+  if (!val) return;
+  currentUser = val;
+  localStorage.setItem('tripUser', val);
+  showMain();
+};
+
+function showMain() {
+  document.getElementById('name-setup').style.display = 'none';
+  document.getElementById('main-area').style.display = 'block';
+  document.getElementById('header-sub').textContent = currentUser + 'さんの記録';
+  startListening();
+}
+
+function startListening() {
+  onValue(entriesRef, (snapshot) => {
+    entries = [];
+    snapshot.forEach(child => {
+      entries.push({ id: child.key, ...child.val() });
+    });
+    entries.sort((a, b) => b.timestamp - a.timestamp);
+    render();
+  });
+}
+
+window.openModal = function() {
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('in-place').value = '';
+  document.getElementById('in-memo').value = '';
+  document.getElementById('photo-preview').style.display = 'none';
+  photoData = '';
+  document.getElementById('in-photo').value = '';
+  initEmojis();
+};
+
+window.closeModal = function() {
+  document.getElementById('modal').classList.remove('open');
+};
+
+window.previewPhoto = function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    photoData = e.target.result;
+    const img = document.getElementById('photo-preview');
+    img.src = photoData;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+};
+
+window.saveEntry = async function() {
+  const place = document.getElementById('in-place').value.trim();
+  const memo = document.getElementById('in-memo').value.trim();
+  if (!place && !memo) { alert('場所かメモを入力してください'); return; }
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  await push(entriesRef, {
+    place: place || '記録',
+    emoji: selectedEmoji || '✨',
+    memo,
+    photo: photoData,
+    time,
+    author: currentUser,
+    timestamp: Date.now()
+  });
+  closeModal();
+};
+
+window.deleteEntry = async function(id) {
+  if (!confirm('この記録を削除しますか？')) return;
+  await remove(ref(db, 'entries/' + id));
+};
+
+function render() {
+  document.getElementById('loading').style.display = 'none';
+  const tl = document.getElementById('timeline');
+  const empty = document.getElementById('empty-msg');
+  document.getElementById('cnt').textContent = entries.length;
+  document.getElementById('photo-cnt').textContent = entries.filter(e => e.photo).length;
+  const members = new Set(entries.map(e => e.author)).size;
+  document.getElementById('member-cnt').textContent = members;
+  if (entries.length === 0) {
+    tl.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  tl.style.display = 'block';
+  empty.style.display = 'none';
+  tl.innerHTML = entries.map(e => `
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-card">
+        <div class="tl-top">
+          <span class="tl-emoji">${e.emoji}</span>
+          <span class="tl-place">${e.place}</span>
+          <div class="tl-meta">
+            <span class="tl-author">${e.author || '?'}</span>
+            <span class="tl-time">${e.time}</span>
+          </div>
+        </div>
+        ${e.memo ? `<div class="tl-memo">${e.memo}</div>` : ''}
+        ${e.photo ? `<img class="tl-img" src="${e.photo}" />` : ''}
+        ${e.author === currentUser ? `<div class="tl-delete" onclick="deleteEntry('${e.id}')">削除</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+if (currentUser) {
+  showMain();
+} else {
+  document.getElementById('loading').style.display = 'none';
+}
+</script>
+</body>
+</html>
